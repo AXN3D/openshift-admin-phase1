@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: platform-info
+data:
+  owner: ahmed
+  purpose: openshift-admin-learning
