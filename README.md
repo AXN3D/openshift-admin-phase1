@@ -111,6 +111,30 @@ resulting in no running pods and therefore no service endpoints.
 - Endpoints depend on replica count and readiness
 - Always verify Deployment → Pods → Endpoints in that order
 
+---------------
+
+## End-to-End Validation
+
+The backend application was exposed externally using an OpenShift Route.
+
+### Issue Encountered
+- Route showed no endpoints despite Service having active endpoints
+
+### Root Cause
+OpenShift Routes bind to named Service ports.  
+The backend Service used an unnamed port, which prevented the router from
+resolving endpoints.
+
+### Resolution
+- Added a named port ('https') to the backend Service
+- Updated the Route to reference the named port
+- Verified router endpoints and browser access
+
+### Result
+End-to-end traffic flow confirmed:
+Browser → OpenShift Route → Service → Pod → PostgreSQL
+
+
 
 
 
