@@ -1,7 +1,10 @@
-\# OpenShift Admin – Phase 1
+# OpenShift Admin – Phase 1: Platform Fundamentals
 
-Learning Kubernetes and OpenShift administration using OpenShift Sandbox.
+## Overview
+This project demonstrates hands-on OpenShift administration by deploying
+and operating a multi-tier application on OpenShift Sandbox.
 
+The focus is on **platform operations and troubleshooting**, not CI/CD or DevOps tooling.
 
 
 \## First OpenShift Resource
