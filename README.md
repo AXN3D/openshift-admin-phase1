@@ -82,5 +82,37 @@ The initial Secret incorrectly used `POSTGRES\_\*` variables.
 
 \- Logs are the primary troubleshooting tool for failing pods
 
+## PostgreSQL Service Without Endpoints – Root Cause
+
+After creating the PostgreSQL Service, no endpoints were initially populated.
+
+### Symptoms
+- Service existed
+- `oc get endpoints postgres` returned `<none>`
+
+### Investigation
+- Checked pod status using:
+oc get pods
+
+- No pods were running in the namespace
+- Deployment was scaled to 0 replicas
+
+### Root Cause
+The PostgreSQL Deployment had been scaled down to 0 replicas,
+resulting in no running pods and therefore no service endpoints.
+
+### Resolution
+- Scaled the Deployment back to 1 replica
+- Verified pod readiness
+- Confirmed endpoints were populated correctly
+
+### Key Learnings
+- Services only route traffic to Ready pods
+- Endpoints depend on replica count and readiness
+- Always verify Deployment → Pods → Endpoints in that order
+
+
+
+
 
 
