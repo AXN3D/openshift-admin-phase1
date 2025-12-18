@@ -1,0 +1,19 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend-scc
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: backend-scc
+  template:
+    metadata:
+      labels:
+        app: backend-scc
+    spec:
+      containers:
+      - name: backend
+        image: registry.access.redhat.com/ubi9/httpd-24
+        ports:
+        - containerPort: 8080
