@@ -1,0 +1,19 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend-rollout
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: backend-rollout
+  template:
+    metadata:
+      labels:
+        app: backend-rollout
+    spec:
+      containers:
+      - name: backend
+        image: registry.access.redhat.com/ubi9/httpd-24-issue
+        ports:
+        - containerPort: 8080

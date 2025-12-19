@@ -137,9 +137,114 @@ resolving endpoints.
 End-to-end traffic flow confirmed:
 Browser → OpenShift Route → Service → Pod → PostgreSQL
 
+================================================================================================
+
+
+---
+
+## Phase 2 – OpenShift Admin Operations
+
+Phase 2 focuses on **day-2 operational behavior**, including resource management,
+security enforcement, and failure scenarios commonly encountered in production
+OpenShift environments.
+
+---
+
+## Phase 2.1 – Resource Limits & OOMKilled
+
+### Issue
+A backend pod repeatedly entered 'CrashLoopBackOff' with the container being
+terminated due to 'OOMKilled' events.
+
+### Investigation
+- Checked pod status and restart behavior
+- Used `oc describe pod` and cluster events to inspect termination reason
+- Observed `Reason: OOMKilled` in pod details
+
+### Root Cause
+The container exceeded its configured memory limit.
+Although the pod was successfully scheduled based on its memory request,
+the Linux kernel terminated the process once it exceeded the memory limit.
+
+Increasing memory limits delayed the failure but did not prevent it because
+the application continuously allocated memory with no upper bound.
+
+### Resolution
+- Adjusted memory requests and limits to appropriate values
+- Restarted the pod to apply new resource settings
+- Used a bounded workload to validate pod stability
+
+### Key Learnings
+- Requests affect scheduling; limits enforce runtime usage
+- 'OOMKilled' is a kernel-level action, not an application crash
+- Increasing limits does not fix unbounded memory consumption
+- Admins must distinguish between platform misconfiguration and application behavior
+
+---
+
+## Repository Purpose
+
+This repository serves as a growing knowledge base for OpenShift administration,
+capturing real failures, investigations, and resolutions encountered while
+operating workloads on the platform.
+
+------------------------------------------------------------------------------------
+
+## Phase 2.2 – SecurityContext & SCC
+
+### Issue
+A container that ran successfully in Docker/Kubernetes failed on OpenShift.
+
+### Investigation
+- Pod entered CrashLoopBackOff
+- Logs showed permission denied errors when writing to system paths
+
+### Root Cause
+OpenShift enforces non-root container execution using Security Context Constraints (SCC).
+The application assumed root privileges and attempted to write to restricted paths.
+
+### Resolution
+- Updated the container to run as non-root
+- Modified runtime paths to writable locations
+- Redeployed the application successfully
+
+### Key Learnings
+- OpenShift SCCs are stricter than vanilla Kubernetes security
+- Applications must be designed to run as non-root
+- Fixing apps is preferable to weakening cluster security
 
 
 
+### Final Resolution
+After repeated SCC-related failures with a generic nginx image, the deployment
+was updated to use a Red Hat UBI-based httpd image designed for OpenShift.
+The application ran successfully without requiring privileged access or
+relaxed security constraints.
+
+### Key Learnings
+- OpenShift SCC enforcement can expose hidden assumptions in container images
+- Not all upstream images are OpenShift-compatible
+- Selecting OpenShift-certified images is often the correct administrative fix
+
+----------------------------------------------------------------------------------
 
 
+## Phase 2.3 – Rolling Updates & Rollbacks
+
+### Issue
+A deployment update failed after a container image with an invalid tag was applied.
+
+### Investigation
+- Rollout stalled during update
+- New pods failed with ImagePullBackOff
+- Existing pods continued serving traffic
+
+### Resolution
+- Used `oc rollout undo` to revert to the last known good ReplicaSet
+- Verified deployment stability after rollback
+
+### Key Learnings
+- OpenShift performs rolling updates, not full restarts
+- Failed rollouts do not automatically cause downtime
+- Rollbacks are a critical day-2 operational skill
 
