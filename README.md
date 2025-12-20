@@ -248,3 +248,99 @@ A deployment update failed after a container image with an invalid tag was appli
 - Failed rollouts do not automatically cause downtime
 - Rollbacks are a critical day-2 operational skill
 
+------------------------------------------------------------------------------------
+
+
+## Phase 2.4 – Image Pull Failures
+
+### Issue
+Pods failed to start with `ImagePullBackOff` when referencing a private image.
+
+### Investigation
+- Pod events showed unauthorized image pull errors
+- Verified ServiceAccount configuration
+
+### Root Cause
+The ServiceAccount had no image pull credentials for the private registry.
+
+### Resolution
+- Created a docker-registry pull secret
+- Linked the secret to the ServiceAccount used by the pod
+- Verified authenticated pull attempts via ServiceAccount inspection
+
+### Key Learnings
+- Image pulls are performed by ServiceAccounts
+- imagePullSecrets must be explicitly linked
+- Persistent ImagePullBackOff may indicate invalid credentials, not misconfiguration
+
+---------------------------------------------------------------------------------------
+
+## Phase 2.5 – Routes & 503 Debugging
+
+### Scenario
+An application was exposed externally using an OpenShift Route backed by a
+Service and Deployment.
+
+### Observation
+The Route resolved successfully and served traffic even though the Service
+port was unnamed.
+
+### Explanation
+OpenShift Routes may successfully bind to a Service when there is a single,
+unambiguous port definition. In such cases, the router can resolve the target
+port numerically without requiring an explicit port name.
+
+### Operational Insight
+This behavior is not guaranteed in real-world scenarios. Services with multiple
+ports, TLS configurations, or metrics endpoints require explicitly named ports
+for predictable Route behavior.
+
+### Best Practice
+Always define named Service ports when exposing applications through OpenShift
+Routes to avoid intermittent 503 errors and router endpoint resolution issues.
+
+### Key Learnings
+- Routes bind to Services, not directly to pods
+- OpenShift may auto-resolve simple single-port Services
+- Explicit port naming is required for reliable routing in multi-port Services
+
+=======================================================================================
+
+
+## Phase 3.1 – Projects & RBAC (Least Privilege)
+
+### Scenario
+Project-level access control was evaluated to enforce least-privilege access
+within an OpenShift Project.
+
+### Investigation
+- Reviewed existing RoleBindings in the project
+- Identified that the primary user had admin privileges by default
+- Observed that binding a restrictive Role to an admin user did not reduce access
+
+### Key Observation
+RBAC permissions in OpenShift are **additive**, not restrictive.
+A user with admin privileges retains full access even when bound to a
+more restrictive Role.
+
+### Correct Validation Method
+To accurately test RBAC behavior, a ServiceAccount was used instead of a user.
+
+### Action
+- Created a custom Role allowing read-only access to pods and services
+- Created a ServiceAccount for RBAC testing
+- Bound the custom Role to the ServiceAccount
+- Tested permissions using `--as=system:serviceaccount`
+
+### Validation
+- Read operations (get/list pods and services) succeeded
+- Write operations (creating deployments) were denied with `Forbidden` errors
+
+### Key Learnings
+- RBAC permissions are additive and cannot revoke existing access
+- Admin users cannot self-restrict using RBAC
+- ServiceAccounts are the correct mechanism for validating least-privilege access
+- `Forbidden` errors indicate correct RBAC enforcement
+
+
+
